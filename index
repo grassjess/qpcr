@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>qPCR Experiment Planner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    .plate {
+      display: grid;
+      grid-template-columns: repeat(12, 40px);
+      grid-gap: 5px;
+      margin-top: 20px;
+    }
+    .well {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #ccc;
+      text-align: center;
+      line-height: 40px;
+      cursor: pointer;
+      position: relative;
+    }
+    .well.reagent-added {
+      border: 2px solid green;
+    }
+    .well.sample-added {
+      border: 2px solid blue;
+    }
+    .well .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      font-size: 10px;
+      background: rgba(255,255,255,0.8);
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .controls {
+      margin-top: 20px;
+    }
+    .controls button {
+      margin-right: 10px;
+    }
+    .color-legend {
+      margin-top: 10px;
+    }
+    .color-box {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="page1">
+    <h2>Experiment Setup</h2>
+    <label>Number of samples: <input type="number" id="numSamples" min="1" /></label><br/><br/>
+    <label>Dilution 1: <input type="text" id="dilution1" /></label><br/><br/>
+    <label>Dilution 2: <input type="text" id="dilution2" /></label><br/><br/>
+    <label>Prepare new vial of SYBR Green? <input type="checkbox" id="prepSYBR" /></label><br/><br/>
+    <button onclick="goToPage2()">Next</button>
+  </div>
+
+  <div id="page2" class="hidden">
+    <h2>Sample Dilutions (96-well Plate)</h2>
+    <div id="sampleInputs"></div>
+    <div class="controls">
+      <button onclick="goToPage1()">Back</button>
+      <button onclick="goToPage3()">Next</button>
+    </div>
+  </div>
+
+  <div id="page3" class="hidden">
+    <h2>Reaction Plate (384-well)</h2>
+    <p>Per well: 5 µL reagent + 5 µL sample = 10 µL total</p>
+    <div class="controls">
+      <button onclick="goToPage2()">Back</button>
+      <button onclick="manualEntry()">Manually Enter Sample Location</button>
+      <button onclick="autoPopulate()">Pre-populate Sample Location</button>
+      <button onclick="exportCSV()">Export as CSV</button>
+      <button onclick="printLayout()">Print Layout</button>
+      <input type="file" id="importTemplate" accept=".csv" onchange="importCSV(event)" />
+    </div>
+    <div id="plate384" class="plate"></div>
+    <div id="legend" class="color-legend"></div>
+  </div>
+
+  <script>
+    let samples = [];
+    let dilution1 = '';
+    let dilution2 = '';
+    let sampleColors = {};
+    const colorPalette = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4',
+                          '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff',
+                          '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
+                          '#000075', '#808080'];
+
+    function goToPage1() {
+      document.getElementById('page1').classList.remove('hidden');
+      document.getElementById('page2').classList.add('hidden');
+      document.getElementById('page3').classList.add('hidden');
+    }
+
+    function goToPage2() {
+      const num = parseInt(document.getElementById('numSamples').value);
+      dilution1 = document.getElementById('dilution1').value;
+      dilution2 = document.getElementById('dilution2').value;
+      if (isNaN(num) || !dilution1 || !dilution2) {
+        alert('Please fill in all fields.');
+        return;
+      }
+      samples = [];
+      const container = document.getElementById('sampleInputs');
+      container.innerHTML = '';
+      for (let i = 0; i < num; i++) {
+        const div = document.createElement('div');
+        div.innerHTML = `Sample ${i + 1} Name: <input type="text" id="sample${i}" />`;
+        container.appendChild(div);
+      }
+      document.getElementById('page1').classList.add('hidden');
+      document.getElementById('page2').classList.remove('hidden');
+    }
+
+    function goToPage3() {
+      samples = [];
+      const num = parseInt(document.getElementById('numSamples').value);
+      for (let i = 0; i < num; i++) {
+        const name = document.getElementById(`sample${i}`).value;
+        if (!name) {
+          alert('Please enter all sample names.');
+          return;
+        }
+        samples.push(name);
+      }
+      // Add Standard 0
+      samples.unshift('Standard 0');
+      assignColors();
+      renderPlate();
+      document.getElementById('page2').classList.add('hidden');
+      document.getElementById('page3').classList.remove('hidden');
+    }
+
+    function assignColors() {
+      sampleColors = {};
+      samples.forEach((sample, index) => {
+        sampleColors[sample] = colorPalette[index % colorPalette.length];
+      });
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
+      samples.forEach(sample => {
+        const box = document.createElement('span');
+        box.className = 'color-box';
+        box.style.backgroundColor = sampleColors[sample];
+        legend.appendChild(box);
+        legend.innerHTML += `${sample} `;
+      });
+    }
+
+    function renderPlate() {
+      const plate = document.getElementById('plate384');
+      plate.innerHTML = '';
+      for (let i = 0; i < 384; i++) {
+        const well = document.createElement('div');
+        well.className = 'well';
+        well.dataset.index = i;
+        well.onclick = () => toggleWell(well);
+        plate.appendChild(well);
+      }
+    }
+
+    function toggleWell(well) {
+      if (well.classList.contains('reagent-added')) {
+        well.classList.remove('reagent-added');
+        well.classList.add('sample-added');
+      } else if (well.classList.contains('sample-added')) {
+        well.classList.remove('sample-added');
+      } else {
+        well.classList.add('reagent-added');
+      }
+    }
+
+    function manualEntry() {
+      alert('Manual entry mode activated. Click on wells to assign samples.');
+    }
+
+    function autoPopulate() {
+      // Implement your specific auto-population logic here
+      alert('Auto-populate function is not yet implemented.');
+    }
+
+    function exportCSV() {
+      let csv
+::contentReference[oaicite:0]{index=0}
+ 
