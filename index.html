@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>qPCR Experiment Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Page 1: Experiment Planner -->
+    <section id="page1" class="page active">
+      <h2>Experiment Planner</h2>
+      <label>Number of samples: <input type="number" id="sampleCount" min="1" /></label>
+      <label>Dilution 1: <input type="text" id="dilution1" placeholder="e.g., 1:10000" /></label>
+      <label>Dilution 2: <input type="text" id="dilution2" placeholder="e.g., 1:20000" /></label>
+      <label>Prepare new SYBR Green vial?
+        <select id="prepSybr">
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </label>
+      <button onclick="goToPage(2)">Next</button>
+    </section>
+
+    <!-- Page 2: Sample Dilutions -->
+    <section id="page2" class="page">
+      <h2>Sample Dilutions (96-Well Plate)</h2>
+      <div id="plate96"></div>
+      <button onclick="goToPage(1)">Back</button>
+      <button onclick="goToPage(3)">Next</button>
+    </section>
+
+    <!-- Page 3: Reaction Plate -->
+    <section id="page3" class="page">
+      <h2>Reaction Plate (384-Well)</h2>
+      <div id="plate384"></div>
+      <div class="controls">
+        <button onclick="goToPage(2)">Back</button>
+        <button onclick="autoPopulate()">Pre-Populate Sample Locations</button>
+        <button onclick="exportCSV()">Export CSV</button>
+        <button onclick="window.print()">Print Layout</button>
+      </div>
+    </section>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
