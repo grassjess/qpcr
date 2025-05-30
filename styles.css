@@ -1,0 +1,57 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+label {
+  display: block;
+  margin: 10px 0;
+}
+
+#plate96, #plate384 {
+  display: grid;
+  gap: 2px;
+  margin: 20px 0;
+}
+
+#plate96 {
+  grid-template-columns: repeat(12, 40px);
+}
+
+#plate384 {
+  grid-template-columns: repeat(24, 25px);
+}
+
+.well {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #ccc;
+  text-align: center;
+  line-height: 40px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.well.standard {
+  background-color: #f0f0f0;
+}
+
+.well.sample {
+  background-color: #add8e6;
+}
+
+.well.reagent {
+  background-color: #90ee90;
+}
+
+.controls button {
+  margin-right: 10px;
+}
